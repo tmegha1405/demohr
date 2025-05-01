@@ -1,0 +1,80 @@
+//from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+
+# Setup
+driver = webdriver.Chrome()
+driver.get("https://opensource-demo.orangehrmlive.com/web/index.php/auth/login")
+driver.maximize_window()
+wait = WebDriverWait(driver, 10)
+
+# ----------- Login -----------
+def login(username, password):
+    wait.until(EC.presence_of_element_located((By.NAME, "username"))).send_keys(username)
+    driver.find_element(By.NAME, "password").send_keys(password)
+    driver.find_element(By.XPATH, "//button[@type='submit']").click()
+    print("Logged in successfully")
+
+# ----------- Go to PIM -----------
+def go_to_pim():
+    pim_menu = wait.until(EC.presence_of_element_located((By.XPATH, "//span[text()='PIM']")))
+    ActionChains(driver).move_to_element(pim_menu).click().perform()
+    print("Navigated to PIM module")
+
+# ----------- Add Employee -----------
+def add_employee(first, last):
+    wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Add Employee"))).click()
+    wait.until(EC.presence_of_element_located((By.NAME, "firstName"))).send_keys(first)
+    driver.find_element(By.NAME, "lastName").send_keys(last)
+    driver.find_element(By.XPATH, "//button[@type='submit']").click()
+    print(f"Added employee: {first} {last}")
+    time.sleep(2)
+
+# ----------- Verify Employee in List -----------
+def verify_employee(first, last):
+    wait.until(EC.element_to_be_clickable((By.LINK_TEXT, "Employee List"))).click()
+    time.sleep(2)
+
+    # Search by first name
+    search_box = wait.until(EC.presence_of_element_located((By.XPATH, "//input[@placeholder='Type for hints...']")))
+    search_box.clear()
+    search_box.send_keys(first)
+
+    driver.find_element(By.XPATH, "//button[@type='submit']").click()
+    time.sleep(2)
+
+    # Check in the result
+    rows = driver.find_elements(By.XPATH, "//div[@class='oxd-table-card']")
+    found = False
+    for row in rows:
+        if first in row.text and last in row.text:
+            print(f"{first} {last} - Name Verified")
+            found = True
+            break
+
+    if not found:
+        print(f"{first} {last} - Not Found")
+
+# ----------- Logout -----------
+def logout():
+    driver.find_element(By.CLASS_NAME, "oxd-userdropdown-tab").click()
+    driver.find_element(By.XPATH, "//a[text()='Logout']").click()
+    print("Logged out")
+
+# === Run the script ===
+login("Admin", "admin123")
+go_to_pim()
+
+employees = [("John", "Doe"), ("Alice", "Smith"), ("Bob", "Brown"), ("Diana", "Prince")]
+
+for first, last in employees:
+    add_employee(first, last)
+
+for first, last in employees:
+    verify_employee(first, last)
+
+logout()
+driver.quit()
